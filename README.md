@@ -9,7 +9,7 @@ This project is under development, just some basic selectors are implemented.
 - [x] [ID selectors](http://www.w3.org/TR/css3-selectors/#id-selectors)
 - [x] [Descendant combinator](http://www.w3.org/TR/css3-selectors/#descendant-combinators)
 - [x] [Universal selector](http://www.w3.org/TR/css3-selectors/#universal-selector)
-- [ ] [Attribute selectors](http://www.w3.org/TR/css3-selectors/#attribute-selectors)
+- [x] [Attribute selectors](http://www.w3.org/TR/css3-selectors/#attribute-selectors)
 - [x] [Child combinator](http://www.w3.org/TR/css3-selectors/#child-combinators)
 - [ ] [Adjacent sibling combinator](http://www.w3.org/TR/css3-selectors/#adjacent-sibling-combinators)
 - [ ] [General sibling combinator](http://www.w3.org/TR/css3-selectors/#general-sibling-combinators)
