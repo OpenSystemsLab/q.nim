@@ -28,30 +28,38 @@ type
     Sibling
     Adjacent
 
-  Q = ref object of RootObj
+  QueryContext = ref object of RootObj
     combinator: Combinator
-    context: seq[XmlNode]
+    root: seq[XmlNode]
+    tag: string
+    id: string
+    class: string
 
 
-proc newQ(nodes: seq[XmlNode]): Q =
+proc initContext(root: seq[XmlNode]): QueryContext =
   new(result)
   result.combinator = Descendant
-  result.context = nodes
+  result.root = root
 
-proc newQ(node: XmlNode): Q =
-  newQ(@[node])
+proc initContext(root: XmlNode): QueryContext =
+  initContext(@[root])
 
+proc reset(q: QueryContext) =
+  q.combinator = Descendant
+  q.tag = ""
+  q.id = ""
+  q.class = ""
 
-proc `$`*(q: Q): string =
-  result = $q.context
+proc `$`*(q: QueryContext): string =
+  result = $q.root
 
-proc q*(n: XmlNode): Q =
-  newQ(n)
+proc q*(n: XmlNode): QueryContext =
+  initContext(n)
 
-proc q*(n: seq[XmlNode]): Q =
-  newQ(n)
+proc q*(n: seq[XmlNode]): QueryContext =
+  initContext(n)
 
-proc q*(html, path: string = ""): Q =
+proc q*(html, path: string = ""): QueryContext =
 
   if html == "" and path == "":
     return nil
@@ -62,10 +70,10 @@ proc q*(html, path: string = ""): Q =
   else:
     node = parseHtml(newStringStream(html))
 
-  result = newQ(node)
+  result = initContext(@[node])
 
 
-proc findAll(n: XmlNode, result: var seq[XmlNode], recursive: bool, tag, id, class: string = "") =
+proc findAll(n: XmlNode, result: var seq[XmlNode], ctx: QueryContext) =
   for child in n.items():
     if child.kind != xnElement:
       continue
@@ -73,86 +81,83 @@ proc findAll(n: XmlNode, result: var seq[XmlNode], recursive: bool, tag, id, cla
     var match = false
 
     # match tag if tag specified
-    match = tag == "" or tag == "*" or child.tag == tag
+    match = ctx.tag == "" or ctx.tag == "*" or child.tag == ctx.tag
 
-    if id != "":
-      match = child.attr("id") == id
+    if ctx.id != "":
+      match = child.attr("id") == ctx.id
 
-    if class != "":
-        match = child.attr("class") != "" and class in child.attr("class").split()
+    if ctx.class != "":
+        match = child.attr("class") != "" and ctx.class in child.attr("class").split()
 
     if match:
       result.add(child)
 
-    if recursive:
-      child.findAll(result, recursive, tag=tag, id=id, class=class)
+    if ctx.combinator == Descendant:
+      child.findAll(result, ctx)
 
-proc findAll(nodes: seq[XmlNode], result: var seq[XmlNode], recursive: bool, tag, id, class: string = "") =
-  for n in nodes:
-    n.findAll(result, recursive, tag, id, class)
+proc findAll(result: var seq[XmlNode], ctx: QueryContext) =
+  var found: seq[XmlNode] = @[]
+  for n in result:
+    n.findAll(found, ctx)
+  result = found
 
-proc select*(q: Q, selector: string = ""): seq[XmlNode] =
-  result = q.context
-
-  var found: seq[XmlNode]
-  var recursive = true
+proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
+  result = q.root
 
   if selector.isNil or selector == "":
     return result
 
   var tokens = selector.split()
   for i in 0..tokens.len-1:
-    # reset found list
-    found = @[]
 
+    # reset filter params
+    q.reset()
+
+    # check if previous token is a combinator
     if i > 0:
       let prevToken = tokens[i-1]
 
       # Child combinator
       if prevToken == ">":
-        recursive = false
+        q.combinator = Child
       # Adjacent sibling combinator
       elif prevToken == "~":
-        recursive =  false
+        q.combinator = Sibling
       # General sibling combinator
       elif prevToken == "+":
-        recursive =  false
+        q.combinator = Adjacent
       #Descendant combinator
       else:
-        recursive =  true
-
+        q.combinator = Descendant
 
     let token = tokens[i]
 
     # Combinators
     if token in [">", "~", "+"]:
-      continue
+      discard
 
     # Type selector
-    if token =~ relement:
-      result.findAll(found, recursive, token)
-      result = found
-      continue
+    elif token =~ relement:
+      q.tag = token
+      result.findAll(q)
 
     # ID selector
-    if token =~ rid:
-      result.findAll(found, recursive, matches[0], matches[1])
-      result = found
-      continue
+    elif token =~ rid:
+      q.tag = matches[0]
+      q.id = matches[1]
+      result.findAll(q)
 
     # Class selector
-    if token =~ rclass:
-      result.findAll(found, recursive, matches[0], class=matches[1])
-      result = found
-      continue
+    elif token =~ rclass:
+      q.tag = matches[0]
+      q.class = matches[1]
+      result.findAll(q)
 
     # Universal selector
-    if token == "*":
-      result.findAll(found, recursive)
-      result = found
-      continue
+    elif token == "*":
+      result.findAll(q)
 
-    if token =~ ratrribute:
-      continue
-
-    result = @[]
+    elif token =~ ratrribute:
+      discard
+    else:
+      result = @[]

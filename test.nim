@@ -28,9 +28,6 @@ var html = """<html>
 </html>"""
 var d = q(html)
 
-#echo d.select("head *")
+echo d.select("head *")
 echo d.select("ul.menu > li > a")
-#echo d.select("#top")
-
-#echo d.select("p.lead")
-#echo d.select(".col-sm-3")
+echo d.select("#link1")
