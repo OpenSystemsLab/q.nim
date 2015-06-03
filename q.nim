@@ -6,7 +6,8 @@
 #    distribution, for details about the copyright.
 #
 
-## This module is a Simple CSS3 selectors for Nim
+## This module is a Simple package for query HTML/XML elements
+## using a CSS3 or jQuery-like selector syntax
 
 import re
 import strutils

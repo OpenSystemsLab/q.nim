@@ -1,5 +1,5 @@
 # q.nim
-Simple CSS3 selectors for [Nim](http://nim-lang.org).
+Simple package for query HTML/XML elements using a CSS3 or jQuery-like selector syntax for [Nim](http://nim-lang.org).
 
 This project is under development, just some basic selectors are implemented.
 
