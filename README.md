@@ -4,21 +4,16 @@ Simple [jQuery](http://jquery.com)-like CSS selector for [Nim](http://nim-lang.o
 This project is under development, just some basic selectors are implemented.
 
 ## Selectors
-
-### Implemented
-- [x] Type selectors
-- [x] Class selectors
-- [x] ID selectors
-- [x] Descendant combinator
-
-### Todo
-
-- [ ] Universal selector
-- [ ] Attribute selectors
-- [ ] Child combinator
-- [ ] Adjacent sibling combinator
-- [ ] General sibling combinator
-- [ ] Structural pseudo-classes
+- [x] [Type selectors](http://www.w3.org/TR/css3-selectors/#type-selectors)
+- [x] [Class selectors](http://www.w3.org/TR/css3-selectors/#class-html)
+- [x] [ID selectors](http://www.w3.org/TR/css3-selectors/#id-selectors)
+- [x] [Descendant combinator](http://www.w3.org/TR/css3-selectors/#descendant-combinators)
+- [ ] [Universal selector](http://www.w3.org/TR/css3-selectors/#universal-selector)
+- [ ] [Attribute selectors](http://www.w3.org/TR/css3-selectors/#attribute-selectors)
+- [ ] [Child combinator](http://www.w3.org/TR/css3-selectors/#child-combinators)
+- [ ] [Adjacent sibling combinator](http://www.w3.org/TR/css3-selectors/#adjacent-sibling-combinators)
+- [ ] [General sibling combinator](http://www.w3.org/TR/css3-selectors/#general-sibling-combinators)
+- [ ] [Structural pseudo-classes](http://www.w3.org/TR/css3-selectors/#structural-pseudos)
 
 ##Usage
 
