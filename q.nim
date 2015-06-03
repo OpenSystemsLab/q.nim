@@ -176,6 +176,10 @@ proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
     if token in [">", "~", "+"]:
       discard
 
+    # Universal selector
+    elif token == "*":
+      result.findAll(q)
+
     # Type selector
     elif token =~ relement:
       q.tag = token
@@ -196,12 +200,7 @@ proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
     # Attribute selector
     elif token =~ ratrribute:
       q.tag = matches[0]
-      echo matches[1], matches[2], matches[3]
       q.attribute = newAttribute(matches[1], matches[2], matches[3])
-      result.findAll(q)
-
-    # Universal selector
-    elif token == "*":
       result.findAll(q)
 
     else:
