@@ -1,5 +1,5 @@
 # q.nim
-Simple [jQuery](http://jquery.com)-like CSS selector for [Nim](http://nim-lang.org).
+Simple CSS3 selectors for [Nim](http://nim-lang.org).
 
 This project is under development, just some basic selectors are implemented.
 

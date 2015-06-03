@@ -2,7 +2,7 @@
 name          = "q"
 version       = "0.0.1"
 author        = "Huy Doan"
-description   = "A jQuery-like library for Nim"
+description   = "Simple CSS3 selectors for Nim"
 license       = "MIT"
 
 [Deps]

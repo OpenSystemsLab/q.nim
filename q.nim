@@ -6,7 +6,7 @@
 #    distribution, for details about the copyright.
 #
 
-## This module is a jQuery-like library for Nim
+## This module is a Simple CSS3 selectors for Nim
 
 import re
 import strutils
@@ -29,20 +29,19 @@ type
 
   Q = ref object of RootObj
     combinator: Combinator
-    nodes: seq[XmlNode]
+    context: seq[XmlNode]
 
-proc newQ(node: XmlNode): Q =
-  new(result)
-  result.combinator = Descendant
-  result.nodes = @[node]
 
 proc newQ(nodes: seq[XmlNode]): Q =
   new(result)
   result.combinator = Descendant
-  result.nodes = nodes
+  result.context = nodes
+
+proc newQ(node: XmlNode): Q =
+  newQ(@[node])
 
 proc `$`*(q: Q): string =
-  result = $q.nodes
+  result = $q.context
 
 proc q*(html, path: string = ""): Q =
 
@@ -84,7 +83,7 @@ proc findAll(nodes: seq[XmlNode], result: var seq[XmlNode], recursive: bool, tag
     n.findAll(result, recursive, tag, id, class)
 
 proc select*(q: Q, selector: string = ""): seq[XmlNode] =
-  result = q.nodes
+  result = q.context
 
   var found: seq[XmlNode]
 
