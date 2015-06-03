@@ -40,8 +40,15 @@ proc newQ(nodes: seq[XmlNode]): Q =
 proc newQ(node: XmlNode): Q =
   newQ(@[node])
 
+
 proc `$`*(q: Q): string =
   result = $q.context
+
+proc q*(n: XmlNode): Q =
+  newQ(n)
+
+proc q*(n: seq[XmlNode]): Q =
+  newQ(n)
 
 proc q*(html, path: string = ""): Q =
 
@@ -64,9 +71,10 @@ proc findAll(n: XmlNode, result: var seq[XmlNode], recursive: bool, tag, id, cla
 
     var match = false
 
+    # match tag if tag specified
     match = tag == "" or tag == "*" or child.tag == tag
 
-    if id != "" and child.attr("id") != "":
+    if id != "":
       match = child.attr("id") == id
 
     if class != "":
@@ -86,6 +94,7 @@ proc select*(q: Q, selector: string = ""): seq[XmlNode] =
   result = q.context
 
   var found: seq[XmlNode]
+  var recursive = true
 
   if selector.isNil or selector == "":
     return result
@@ -95,27 +104,50 @@ proc select*(q: Q, selector: string = ""): seq[XmlNode] =
     # reset found list
     found = @[]
 
-    if i > 0 and tokens[i-1] == ">":
-      continue
+    if i > 0:
+      let prevToken = tokens[i-1]
+
+      # Child combinator
+      if prevToken == ">":
+        recursive = false
+      # Adjacent sibling combinator
+      elif prevToken == "~":
+        recursive =  false
+      # General sibling combinator
+      elif prevToken == "+":
+        recursive =  false
+      #Descendant combinator
+      else:
+        recursive =  true
+
 
     let token = tokens[i]
-    echo "Token ", token
 
-    # match simple html element
+    # Combinators
+    if token in [">", "~", "+"]:
+      continue
+
+    # Type selector
     if token =~ relement:
-      result.findAll(found, true, token)
+      result.findAll(found, recursive, token)
       result = found
       continue
 
-    # match simple id selector
+    # ID selector
     if token =~ rid:
-      result.findAll(found, true, matches[0], matches[1])
+      result.findAll(found, recursive, matches[0], matches[1])
       result = found
       continue
 
-    # match simple class selector
+    # Class selector
     if token =~ rclass:
-      result.findAll(found, true, matches[0], class=matches[1])
+      result.findAll(found, recursive, matches[0], class=matches[1])
+      result = found
+      continue
+
+    # Universal selector
+    if token == "*":
+      result.findAll(found, recursive)
       result = found
       continue
 
