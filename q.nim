@@ -121,15 +121,16 @@ proc findAll(n: XmlNode, result: var seq[XmlNode], ctx: QueryContext) =
         match = child.attr("class") != "" and ctx.class in child.attr("class").split()
 
     if not ctx.attribute.isNil:
+      let value = child.attr(ctx.attribute.name)
       case ctx.attribute.operator
       of Equals:
-        match = ctx.attribute.value == child.attr(ctx.attribute.name)
+        match = ctx.attribute.value == value
       of StartsWith:
-        match = child.attr(ctx.attribute.name).startsWith(ctx.attribute.value)
+        match = value.startsWith(ctx.attribute.value)
       of EndsWith:
-        match = child.attr(ctx.attribute.name).endsWith(ctx.attribute.value)
+        match = value.endsWith(ctx.attribute.value)
       of Contains:
-        match = child.attr(ctx.attribute.name).contains(ctx.attribute.value)
+        match = value.contains(ctx.attribute.value)
 
     if match:
       result.add(child)
@@ -159,17 +160,14 @@ proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
     if i > 0:
       let prevToken = tokens[i-1]
 
-      # Child combinator
-      if prevToken == ">":
+      case tokens[i-1]:
+      of ">": # Child combinator
         q.combinator = Child
-      # Adjacent sibling combinator
-      elif prevToken == "~":
+      of "~": # Adjacent sibling combinator
         q.combinator = Sibling
-      # General sibling combinator
-      elif prevToken == "+":
+      of "+": # General sibling combinator
         q.combinator = Adjacent
-      #Descendant combinator
-      else:
+      else: #Descendant combinator
         q.combinator = Descendant
 
     let token = tokens[i]
