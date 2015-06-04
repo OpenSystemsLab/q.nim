@@ -3,7 +3,8 @@ import xmltree
 
 var html = """<html>
 <head>
-  <tile>Example</title>
+  <title>Example</title>
+  <script></script>
 </head>
 <body>
   <nav>
@@ -31,13 +32,13 @@ var html = """<html>
     <div class="form-group">
       <label for="inputEmail3" class="col-sm-2 control-label">Email</label>
       <div class="col-sm-10">
-        <input type="email" class="form-control" id="inputEmail3" placeholder="Email">
+        <input type="email" class="form-control" id="inputEmail3" placeholder="Email" />
       </div>
     </div>
     <div class="form-group">
       <label for="inputPassword3" class="col-sm-2 control-label">Password</label>
       <div class="col-sm-10">
-        <input type="password" class="form-control" id="inputPassword3" placeholder="Password">
+        <input type="password" class="form-control" id="inputPassword3" placeholder="Password" />
       </div>
     </div>
     <div class="form-group">
@@ -57,10 +58,13 @@ var html = """<html>
   </form>
 </body>
 </html>"""
-var d = q(html)
 
+
+var d = q(html)
 #echo d.select("head *")
-#echo d.select("ul.menu > li > a")
+#echo d.select("ul li a")
+echo d.select("ul.menu > li a")
+echo d.select("ul.menu > li > a")
 #echo d.select("#link1")
 #echo d.select("input[type=password]")
 #echo d.select("input[type='password']")
@@ -68,4 +72,4 @@ var d = q(html)
 #echo d.select("input[type^=pa]")
 #echo d.select("input[type$=ord]")
 #echo d.select("input[type*=ss]")
-echo d.select("ul.menu ~ div")
+echo d.select("ul.menu ~ div + a + ul li")
