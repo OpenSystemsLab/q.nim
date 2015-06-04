@@ -23,7 +23,10 @@ var html = """<html>
         <a href="#">Link 2</a>
       </li>
     </ul>
-  </nav
+    <div class="col-1"></div>
+    <div class="col-2"></div>
+    <div class="col-3"></div>
+  </nav>
   <form class="form-horizontal">
     <div class="form-group">
       <label for="inputEmail3" class="col-sm-2 control-label">Email</label>
@@ -56,12 +59,13 @@ var html = """<html>
 </html>"""
 var d = q(html)
 
-echo d.select("head *")
-echo d.select("ul.menu > li > a")
-echo d.select("#link1")
-echo d.select("input[type=password]")
-echo d.select("input[type='password']")
-echo d.select("input[type=\"password\"]")
-echo d.select("input[type^=pa]")
-echo d.select("input[type$=ord]")
-echo d.select("input[type*=ss]")
+#echo d.select("head *")
+#echo d.select("ul.menu > li > a")
+#echo d.select("#link1")
+#echo d.select("input[type=password]")
+#echo d.select("input[type='password']")
+#echo d.select("input[type=\"password\"]")
+#echo d.select("input[type^=pa]")
+#echo d.select("input[type$=ord]")
+#echo d.select("input[type*=ss]")
+echo d.select("ul.menu ~ div")

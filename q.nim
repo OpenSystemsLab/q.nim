@@ -25,8 +25,8 @@ type
   Combinator = enum
     Descendant
     Child
-    Sibling
-    Adjacent
+    AdjacentSibling
+    GeneralSibling
 
   Operator = enum
     Equals
@@ -40,6 +40,8 @@ type
     value: string
 
   QueryContext = ref object of RootObj
+    saveParent: bool
+    parents: seq[XmlNode]
     combinator: Combinator
     root: seq[XmlNode]
     tag: string
@@ -50,6 +52,8 @@ type
 
 proc initContext(root: seq[XmlNode]): QueryContext =
   new(result)
+  result.saveParent = false
+  result.parents = @[]
   result.combinator = Descendant
   result.root = root
 
@@ -57,6 +61,7 @@ proc initContext(root: XmlNode): QueryContext =
   initContext(@[root])
 
 proc reset(q: QueryContext) =
+  q.saveParent = false # Save current parent nodes for next selector
   q.combinator = Descendant
   q.tag = ""
   q.id = ""
@@ -135,13 +140,21 @@ proc findAll(n: XmlNode, result: var seq[XmlNode], ctx: QueryContext) =
     if match:
       result.add(child)
 
+      if ctx.saveParent:
+        ctx.parents.add(n)
+
     if ctx.combinator == Descendant:
       child.findAll(result, ctx)
 
 proc findAll(result: var seq[XmlNode], ctx: QueryContext) =
   var found: seq[XmlNode] = @[]
-  for n in result:
-    n.findAll(found, ctx)
+  if ctx.combinator == GeneralSibling or ctx.combinator == AdjacentSibling:
+    for n in ctx.parents:
+      n.findAll(found, ctx)
+  else:
+    for n in result:
+      n.findAll(found, ctx)
+
   result = found
 
 proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
@@ -158,17 +171,22 @@ proc select*(q: QueryContext, selector: string = ""): seq[XmlNode] =
 
     # check if previous token is a combinator
     if i > 0:
-      let prevToken = tokens[i-1]
-
       case tokens[i-1]:
       of ">": # Child combinator
         q.combinator = Child
       of "~": # Adjacent sibling combinator
-        q.combinator = Sibling
+        q.combinator = GeneralSibling
       of "+": # General sibling combinator
-        q.combinator = Adjacent
+        q.combinator = AdjacentSibling
       else: #Descendant combinator
         q.combinator = Descendant
+
+    if i+1 < tokens.len:
+      if tokens[i+1] in ["+", "~"]:
+        q.saveParent = true
+      else:
+        q.saveParent = false
+
 
     let token = tokens[i]
 
