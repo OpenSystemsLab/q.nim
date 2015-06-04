@@ -110,7 +110,7 @@ proc match(n: XmlNode, s: Selector): bool =
     else:
       result = false
 
-proc searchSimpleSelector(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
+proc searchSimple(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
   for child in n.items():
     if child.kind != xnElement:
       continue
@@ -119,11 +119,26 @@ proc searchSimpleSelector(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode
         result.add(child)
 
     if ctx.selector.combinator == ' ':
-      ctx.searchSimpleSelector(child, result)
+      ctx.searchSimple(child, result)
 
-proc searchNestedSelector(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
-  echo n
-  discard
+proc searchCombined(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
+  for i in 0..n.len()-1:
+    var child = n[i]
+    if child.kind != xnElement:
+      continue
+    
+    if match(child, ctx.selector):
+        var currentSelector = ctx.selector.nestedSelector
+        while not currentSelector.nestedSelector.isNil:
+          #if currentSelector.combinator == '~':
+          echo currentSelector.tag
+          for j in i..n.len()-1:
+            var sibling = n[j]
+            if sibling.kind == xnElement and match(sibling, currentSelector):
+              echo "here ", j, " ", sibling
+              result.add(sibling)
+
+          currentSelector = currentSelector.nestedSelector
 
 
 proc search(ctx: QueryContext, result: var seq[XmlNode]) =
@@ -131,10 +146,10 @@ proc search(ctx: QueryContext, result: var seq[XmlNode]) =
 
   if ctx.selector.nestedSelector.isNil:
     for n in result:
-      ctx.searchSimpleSelector(n, found)
+      ctx.searchSimple(n, found)
   else:
     for n in result:
-      ctx.searchNestedSelector(n, found)
+      ctx.searchCombined(n, found)
 
   result = found
 
@@ -184,6 +199,7 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
 
     var nextCombinator: string
     var nextSelector: string
+    var nestedSelector: Selector
     var i = 1
     while true:
       if pos + i < tokens.len:
@@ -198,11 +214,18 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
         nextSelector = tokens[pos+i+1]
         i += 2
         echo "nextCombinator ", nextCombinator, " nextSelector ", nextSelector
-        selector.nestedSelector = parseSelector(nextSelector)
-        selector.nestedSelector.combinator = nextCombinator[0]
+
+        #TODO support inifite combinators, currently only 2 supported
+        if nestedSelector.isNil:
+          nestedSelector = parseSelector(nextSelector)
+          nestedSelector.combinator = nextCombinator[0]
+        else:
+          nestedSelector.nestedSelector = parseSelector(nextSelector)
+          nestedSelector.nestedSelector.combinator = nextCombinator[0]
 
       else:
         break
+    selector.nestedSelector = nestedSelector
 
     q.selector = selector
     q.search(result)
