@@ -9,7 +9,7 @@ var html = """<html>
 <body>
   <nav>
     <div class="col-1"></div>
-    <ul class="menu">
+    <ul class="menu and">
       <li class="dropdown">
         <a href="#" id="link1">Link <span>1</span></a>
         <ul>
@@ -40,7 +40,7 @@ var html = """<html>
     <div class="form-group">
       <label for="inputPassword3" class="col-sm-2 control-label">Password</label>
       <div class="col-sm-10">
-        <input type="password" class="form-control" id="inputPassword3" placeholder="Password" />
+        <input type="password" data class="form-control" id="inputPassword3" placeholder="Password" />
       </div>
     </div>
     <div class="form-group">
@@ -67,11 +67,13 @@ var d = q(html)
 #echo d.select("ul li a")
 #echo d.select("ul.menu > li a")
 #echo d.select("ul.menu > li > a")
-#echo d.select("#link1")
-#echo d.select("input[type=password]")
-#echo d.select("input[type='password']")
-#echo d.select("input[type=\"password\"]")
-#echo d.select("input[type^=pa]")
-#echo d.select("input[type$=ord]")
-#echo d.select("input[type*=ss]")
-echo d.select("nav ul.menu ~ div + a")
+echo d.select("ul.menu.and > li > a")
+echo d.select("#link1")
+echo d.select("input[type]")
+echo d.select("input[type=password]")
+echo d.select("input[type='password']")
+echo d.select("input[type=\"password\"]")
+echo d.select("input[type^=pa]")
+echo d.select("input[type$=ord]")
+echo d.select("input[type*=ss]")
+#echo d.select("nav ul.menu ~ div + a")

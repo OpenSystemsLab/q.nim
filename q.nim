@@ -9,17 +9,18 @@
 ## This module is a Simple package for query HTML/XML elements
 ## using a CSS3 or jQuery-like selector syntax
 
-import re
+import pegs
 import strutils
 import htmlparser
 import xmltree
 from streams import newStringStream
 
 let
-  relement = re("^([a-zA-Z]+)$")
-  rid = re("^([a-zA-Z]*)\\#([a-zA-Z0-9_-]+)$")
-  rclass = re("^([a-zA-Z]*)\\.([a-zA-Z][a-zA-Z0-9_-]*)$")
-  ratrribute = re("^([a-zA-Z]*)\\[([\\w-]+)([=~\\|\\^\\$\\*]?)=?[\"']?([^\\]\"']*)[\"']?\\]")
+  attribute = "[a-zA-Z][a-zA-Z0-9_\\-]*"
+  classes = "{\\.[a-zA-Z0-9_][a-zA-Z0-9_\\-]*}"
+  attributes = "{\\[" & attribute & "\\s*([\\*\\^\\$\\~]?\\=\\s*[\\'\\\"]?(\\s*\\ident\\s*)+[\\'\\\"]?)?\\]}"
+  pselectors = peg("\\s*{\\ident}?({'#'\\ident})? (" & classes & ")* "& attributes & "*")
+  pattributes = peg("{\\[{" & attribute & "}\\s*({[\\*\\^\\$\\~]?}\\=\\s*[\\'\\\"]?{(\\s*\\ident\\s*)+}[\\'\\\"]?)?\\]}")
 
 type
   Attribute = ref object of RootObj
@@ -31,21 +32,21 @@ type
     combinator: char
     tag: string
     id: string
-    class: string
-    attribute: Attribute
+    classes: seq[string]
+    attributes: seq[Attribute]
     nestedSelector: Selector
 
   QueryContext = ref object of RootObj
     root: seq[XmlNode]
     selector: Selector
 
-proc newSelector(tag, id, class: string = "", attribute: Attribute = nil): Selector =
+proc newSelector(tag, id: string = "", classes: seq[string] = @[], attributes: seq[Attribute] = @[]): Selector =
   new(result)
   result.combinator = ' '
   result.tag = tag
   result.id = id
-  result.class = class
-  result.attribute = attribute
+  result.classes = classes
+  result.attributes = attributes
   result.nestedSelector = nil
 
 
@@ -60,8 +61,9 @@ proc initContext(root: XmlNode): QueryContext =
 proc newAttribute(n, o, v: string): Attribute =
   new(result)
   result.name = n
-  result.operator = o[0]
   result.value = v
+  result.operator = o[0]
+
 
 proc `$`*(q: QueryContext): string =
   result = $q.root
@@ -93,22 +95,28 @@ proc match(n: XmlNode, s: Selector): bool =
   if result and s.id != "":
     result = n.attr("id") == s.id
 
-  if result and s.class != "":
-    result = n.attr("class") != "" and s.class in n.attr("class").split()
+  if result and s.classes.len != 0:
+    for class in s.classes:
+      result = n.attr("class") != "" and class in n.attr("class").split()
 
-  if result and not s.attribute.isNil:
-    let value = n.attr(s.attribute.name)
-    case s.attribute.operator
-    of '=':
-      result = s.attribute.value == value
-    of '^':
-      result = value.startsWith(s.attribute.value)
-    of '$':
-      result = value.endsWith(s.attribute.value)
-    of '*':
-      result = value.contains(s.attribute.value)
-    else:
-      result = false
+  if result and not s.attributes.len != 0:
+    for attribute in s.attributes:
+      let value = n.attr(attribute.name)
+
+      case attribute.operator
+      of '\0':
+        result = attribute.value == value
+      of '^':
+        result = value.startsWith(attribute.value)
+      of '$':
+        result = value.endsWith(attribute.value)
+      of '*':
+        result = value.contains(attribute.value)
+      else:
+        #result = attribute.name in n.attrs()
+        #TODO current xmltree module did not handle empty attribute correctly yet
+        result = false
+
 
 proc searchSimple(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
   for child in n.items():
@@ -122,11 +130,12 @@ proc searchSimple(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
       ctx.searchSimple(child, result)
 
 proc searchCombined(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
+
   for i in 0..n.len()-1:
     var child = n[i]
     if child.kind != xnElement:
       continue
-    
+
     if match(child, ctx.selector):
         var currentSelector = ctx.selector.nestedSelector
         while not currentSelector.nestedSelector.isNil:
@@ -159,20 +168,30 @@ proc parseSelector(token: string): Selector =
   if token == "*":
     result.tag = "*"
   # Type selector
-  elif token =~ relement:
-    result.tag = token
-  # ID selector
-  elif token =~ rid:
-    result.tag = matches[0]
-    result.id = matches[1]
-  # Class selector
-  elif token =~ rclass:
-    result.tag = matches[0]
-    result.class = matches[1]
-  # Attribute selector
-  elif token =~ ratrribute:
-    result.tag = matches[0]
-    result.attribute = newAttribute(matches[1], matches[2], matches[3])
+  elif token =~ pselectors:
+    for i in 0..matches.len-1:
+      if matches[i].isNil:
+        continue
+
+      #echo matches[i]
+
+      let ch = matches[i][0]
+      case ch:
+      of '#':
+        matches[i].delete(0, 0)
+        result.id = matches[i]
+      of '.':
+        matches[i].delete(0, 0)
+        result.classes.add(matches[i])
+      of '[':
+        var m {.inject.}: array[0..MaxSubpatterns-1, string]
+        discard matches[i].match(pattributes, m)
+        if m[2].isNil:
+          m[2] = ""
+          m[3] = ""
+        result.attributes.add(newAttribute(m[1], m[2], m[3]))
+      else:
+        result.tag = matches[i]
   else:
     discard
 
