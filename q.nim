@@ -136,28 +136,30 @@ proc searchSimple(parents: var seq[XmlNode], selector: Selector) =
 
 proc searchCombined(parent: XmlNode, selectors: seq[Selector], found: var seq[XmlNode]) =
   var starts: seq[int] = @[0]
-  var matches: seq[int] = @[]
+  var matches: seq[int]
 
-  for i in 0..selectors.len-1: # matching selector by selector
+  # matching selector by selector
+  for i in 0..selectors.len-1:
     var selector = selectors[i]
+    matches = @[]
+
     for j in starts:
       for k in j..parent.len-1:
         var child = parent[k]
         if child.kind != xnElement:
           continue
-        echo i, ", ", j, ", ", k
 
         if match(child, selector):
           if i < selectors.len-1:
             # save current index for next search
-            matches.add(k)
+            # next selector will only search for nodes followed by this node
+            matches.add(k+1)
           else:
             # no more selector, return matches
             if not found.contains(child):
               found.add(child)
           if selector.combinator == '+':
             break
-
     starts = matches
 
 proc searchCombined(parents: var seq[XmlNode], selectors: seq[Selector]) =
@@ -178,8 +180,6 @@ proc parseSelector(token: string): Selector =
       if matches[i].isNil:
         continue
 
-      #echo matches[i]
-
       let ch = matches[i][0]
       case ch:
       of '#':
@@ -197,7 +197,6 @@ proc parseSelector(token: string): Selector =
     discard
 
 proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
-  echo "Selectors: ", s
   result = q.root
 
   if s.isNil or s == "":
@@ -237,10 +236,8 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
 
       nextToken = tokens[pos+i+1]
       i += 2
-      echo "nextCombinator ", nextCombinator, " nextSelector ", nextToken
 
       var tmp = parseSelector(nextToken)
-
       tmp.combinator = nextCombinator[0]
       selectors.add(tmp)
 

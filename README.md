@@ -1,7 +1,7 @@
 # q.nim
-Simple package for query HTML/XML elements using a CSS3 or jQuery-like selector syntax for [Nim](http://nim-lang.org).
+Simple package for query HTML/XML elements using a CSS3 or [jQuery](http://jquery.com)-like selector syntax for [Nim](http://nim-lang.org).
 
-This project is under development, just some basic selectors are implemented.
+This project is in alpha stage, some features are not supported yet.
 
 ## Selectors
 - [x] [Type selectors](http://www.w3.org/TR/css3-selectors/#type-selectors)
@@ -11,9 +11,17 @@ This project is under development, just some basic selectors are implemented.
 - [x] [Universal selector](http://www.w3.org/TR/css3-selectors/#universal-selector)
 - [x] [Attribute selectors](http://www.w3.org/TR/css3-selectors/#attribute-selectors)
 - [x] [Child combinator](http://www.w3.org/TR/css3-selectors/#child-combinators)
-- [ ] [Adjacent sibling combinator](http://www.w3.org/TR/css3-selectors/#adjacent-sibling-combinators)
-- [ ] [General sibling combinator](http://www.w3.org/TR/css3-selectors/#general-sibling-combinators)
+- [x] [Adjacent sibling combinator](http://www.w3.org/TR/css3-selectors/#adjacent-sibling-combinators)
+- [x] [General sibling combinator](http://www.w3.org/TR/css3-selectors/#general-sibling-combinators)
 - [ ] [Structural pseudo-classes](http://www.w3.org/TR/css3-selectors/#structural-pseudos)
+
+##Installation
+    $ nimble install q
+
+##Changes
+    0.0.2 - supports sibling combinators and multiple class, attributes selectors
+    0.0.1 - initial release
+
 
 ##Usage
 
