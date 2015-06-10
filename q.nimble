@@ -1,6 +1,6 @@
 [Package]
 name          = "q"
-version       = "0.0.1"
+version       = "0.0.2"
 author        = "Huy Doan"
 description   = "Simple CSS3 selectors for Nim"
 license       = "MIT"
