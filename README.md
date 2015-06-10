@@ -17,7 +17,7 @@ This project is under development, just some basic selectors are implemented.
 
 ##Usage
 
-````
+```nim
 import q
 import xmltree
 
@@ -46,4 +46,4 @@ var doc = q(html)
 # Search for nodes by css selector
 echo doc.select("nav ul.menu li a")
 # @[<a href="#">Link 1</a>, <a href="#">Link 2</a>]
-````
+```
