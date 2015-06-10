@@ -14,6 +14,7 @@ import strutils
 import htmlparser
 import xmltree
 from streams import newStringStream
+from strtabs import hasKey
 
 let
   attribute = "[a-zA-Z][a-zA-Z0-9_\\-]*"
@@ -34,11 +35,9 @@ type
     id: string
     classes: seq[string]
     attributes: seq[Attribute]
-    nestedSelector: Selector
 
   QueryContext = ref object of RootObj
     root: seq[XmlNode]
-    selector: Selector
 
 proc newSelector(tag, id: string = "", classes: seq[string] = @[], attributes: seq[Attribute] = @[]): Selector =
   new(result)
@@ -47,13 +46,11 @@ proc newSelector(tag, id: string = "", classes: seq[string] = @[], attributes: s
   result.id = id
   result.classes = classes
   result.attributes = attributes
-  result.nestedSelector = nil
 
 
 proc initContext(root: seq[XmlNode]): QueryContext =
   new(result)
   result.root = root
-  result.selector = newSelector()
 
 proc initContext(root: XmlNode): QueryContext =
   initContext(@[root])
@@ -61,8 +58,10 @@ proc initContext(root: XmlNode): QueryContext =
 proc newAttribute(n, o, v: string): Attribute =
   new(result)
   result.name = n
-  result.value = v
-  result.operator = o[0]
+
+  if not o.isNil:
+    result.operator = o[0]
+    result.value = v
 
 
 proc `$`*(q: QueryContext): string =
@@ -100,67 +99,72 @@ proc match(n: XmlNode, s: Selector): bool =
       result = n.attr("class") != "" and class in n.attr("class").split()
 
   if result and not s.attributes.len != 0:
-    for attribute in s.attributes:
-      let value = n.attr(attribute.name)
+    for attr in s.attributes:
+      let value = n.attr(attr.name)
 
-      case attribute.operator
+      case attr.operator
       of '\0':
-        result = attribute.value == value
+        if attr.value.isNil: # [attr] match all node has specified attribute, dont care about the value
+          result = n.attrs.hasKey(attr.name)
+        else: # [attr=value] value must match
+          result = attr.value == value
       of '^':
-        result = value.startsWith(attribute.value)
+        result = value.startsWith(attr.value)
       of '$':
-        result = value.endsWith(attribute.value)
+        result = value.endsWith(attr.value)
       of '*':
-        result = value.contains(attribute.value)
+        result = value.contains(attr.value)
       else:
-        #result = attribute.name in n.attrs()
-        #TODO current xmltree module did not handle empty attribute correctly yet
         result = false
 
-
-proc searchSimple(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
-  for child in n.items():
+proc searchSimple(parent: XmlNode, selector: Selector, found: var seq[XmlNode]) =
+  for child in parent.items():
     if child.kind != xnElement:
       continue
 
-    if match(child, ctx.selector):
-        result.add(child)
+    if match(child, selector):
+      found.add(child)
+    if selector.combinator != '>':
+      child.searchSimple(selector, found)
 
-    if ctx.selector.combinator == ' ':
-      ctx.searchSimple(child, result)
-
-proc searchCombined(ctx: QueryContext, n: XmlNode, result: var seq[XmlNode]) =
-
-  for i in 0..n.len()-1:
-    var child = n[i]
-    if child.kind != xnElement:
-      continue
-
-    if match(child, ctx.selector):
-        var currentSelector = ctx.selector.nestedSelector
-        while not currentSelector.nestedSelector.isNil:
-          #if currentSelector.combinator == '~':
-          echo currentSelector.tag
-          for j in i..n.len()-1:
-            var sibling = n[j]
-            if sibling.kind == xnElement and match(sibling, currentSelector):
-              echo "here ", j, " ", sibling
-              result.add(sibling)
-
-          currentSelector = currentSelector.nestedSelector
-
-
-proc search(ctx: QueryContext, result: var seq[XmlNode]) =
+proc searchSimple(parents: var seq[XmlNode], selector: Selector) =
   var found: seq[XmlNode] = @[]
+  for p in parents:
+    p.searchSimple(selector, found)
 
-  if ctx.selector.nestedSelector.isNil:
-    for n in result:
-      ctx.searchSimple(n, found)
-  else:
-    for n in result:
-      ctx.searchCombined(n, found)
+  parents = found
 
-  result = found
+proc searchCombined(parents: var seq[XmlNode], selectors: seq[Selector]) =
+  var found: seq[XmlNode] = @[]
+  var starts: seq[int] = @[0]
+  var matches: seq[int] = @[]
+
+  for parent in parents: # loop through parent nodes
+    # reset context
+    starts = @[0]
+    matches = @[]
+    for i in 0..selectors.len-1: # matching selector by selector
+      var selector = selectors[i]
+      for j in starts:
+        for k in j..parent.len-1:
+          var child = parent[k]
+          if child.kind != xnElement:
+            continue
+
+          if match(child, selector):
+            if i < selectors.len-1:
+              # save current index for next search
+              matches.add(k)
+            else:
+              # no more selector, return matches
+              if not found.contains(child):
+                found.add(child)
+            if selector.combinator == '+':
+              break
+      starts = matches
+
+  parents = found
+
 
 proc parseSelector(token: string): Selector =
   result = newSelector()
@@ -184,12 +188,8 @@ proc parseSelector(token: string): Selector =
         matches[i].delete(0, 0)
         result.classes.add(matches[i])
       of '[':
-        var m {.inject.}: array[0..MaxSubpatterns-1, string]
-        discard matches[i].match(pattributes, m)
-        if m[2].isNil:
-          m[2] = ""
-          m[3] = ""
-        result.attributes.add(newAttribute(m[1], m[2], m[3]))
+        if matches[i] =~ pattributes:
+          result.attributes.add(newAttribute(matches[1], matches[2], matches[3]))
       else:
         result.tag = matches[i]
   else:
@@ -202,49 +202,48 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
   if s.isNil or s == "":
     return result
 
+  var nextCombinator, nextToken: string
   var tokens = s.split()
+  var selectors: seq[Selector]
   for pos in 0..tokens.len-1:
+    var isSimple = true
 
     if pos > 0 and (tokens[pos-1] == "+" or tokens[pos-1] == "~"):
       continue
 
-    # ignore combinators
-    if tokens[pos] in [">", "~", "+"]:
-      discard
+    if tokens[pos] in [">", "~", "+"]: # ignore combinators
+      continue
 
     var selector = parseSelector(tokens[pos])
     if pos > 0 and tokens[pos-1] == ">":
       selector.combinator = '>'
 
-    var nextCombinator: string
-    var nextSelector: string
-    var nestedSelector: Selector
+    selectors = @[selector]
+
     var i = 1
     while true:
-      if pos + i < tokens.len:
-        nextCombinator = tokens[pos+i]
-        #  if next token is a sibling combinator
-        if nextCombinator == "+" or nextCombinator == "~":
-          if pos + i + 1 >= tokens.len:
-            raise newException(ValueError, "a selector expected after sibling combinator: " & nextCombinator)
-        else:
-            break
-
-        nextSelector = tokens[pos+i+1]
-        i += 2
-        echo "nextCombinator ", nextCombinator, " nextSelector ", nextSelector
-
-        #TODO support inifite combinators, currently only 2 supported
-        if nestedSelector.isNil:
-          nestedSelector = parseSelector(nextSelector)
-          nestedSelector.combinator = nextCombinator[0]
-        else:
-          nestedSelector.nestedSelector = parseSelector(nextSelector)
-          nestedSelector.nestedSelector.combinator = nextCombinator[0]
-
-      else:
+      if pos + i >= tokens.len:
         break
-    selector.nestedSelector = nestedSelector
+      nextCombinator = tokens[pos+i]
+      #  if next token is a sibling combinator
+      if nextCombinator == "+" or nextCombinator == "~":
+        if pos + i + 1 >= tokens.len:
+          raise newException(ValueError, "a selector expected after sibling combinator: " & nextCombinator)
+      else:
+          break
 
-    q.selector = selector
-    q.search(result)
+      isSimple = false
+
+      nextToken = tokens[pos+i+1]
+      i += 2
+      echo "nextCombinator ", nextCombinator, " nextSelector ", nextToken
+
+      var tmp = parseSelector(nextToken)
+
+      tmp.combinator = nextCombinator[0]
+      selectors.add(tmp)
+
+    if isSimple:
+      result.searchSimple(selectors[0])
+    else:
+      result.searchCombined(selectors)
