@@ -134,37 +134,38 @@ proc searchSimple(parents: var seq[XmlNode], selector: Selector) =
 
   parents = found
 
-proc searchCombined(parents: var seq[XmlNode], selectors: seq[Selector]) =
-  var found: seq[XmlNode] = @[]
+proc searchCombined(parent: XmlNode, selectors: seq[Selector], found: var seq[XmlNode]) =
   var starts: seq[int] = @[0]
   var matches: seq[int] = @[]
 
-  for parent in parents: # loop through parent nodes
-    # reset context
-    starts = @[0]
-    matches = @[]
-    for i in 0..selectors.len-1: # matching selector by selector
-      var selector = selectors[i]
-      for j in starts:
-        for k in j..parent.len-1:
-          var child = parent[k]
-          if child.kind != xnElement:
-            continue
+  for i in 0..selectors.len-1: # matching selector by selector
+    var selector = selectors[i]
+    for j in starts:
+      for k in j..parent.len-1:
+        var child = parent[k]
+        if child.kind != xnElement:
+          continue
+        echo i, ", ", j, ", ", k
 
-          if match(child, selector):
-            if i < selectors.len-1:
-              # save current index for next search
-              matches.add(k)
-            else:
-              # no more selector, return matches
-              if not found.contains(child):
-                found.add(child)
-            if selector.combinator == '+':
-              break
-      starts = matches
+        if match(child, selector):
+          if i < selectors.len-1:
+            # save current index for next search
+            matches.add(k)
+          else:
+            # no more selector, return matches
+            if not found.contains(child):
+              found.add(child)
+          if selector.combinator == '+':
+            break
+
+    starts = matches
+
+proc searchCombined(parents: var seq[XmlNode], selectors: seq[Selector]) =
+  var found: seq[XmlNode] = @[]
+  for p in parents:
+    p.searchCombined(selectors, found)
 
   parents = found
-
 
 proc parseSelector(token: string): Selector =
   result = newSelector()

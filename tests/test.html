@@ -1,7 +1,4 @@
-import q
-import xmltree
-
-var html = """<html>
+<html>
 <head>
   <title>Example</title>
   <script></script>
@@ -25,10 +22,10 @@ var html = """<html>
         <a href="#">Link 2</a>
       </li>
     </ul>
-
+    <a href="#">Link 100</a>
     <div class="col-2"></div>
     <div class="col-3"></div>
-    <a href="#">Link 100</a>
+    <a href="#">Link 101</a>
   </nav>
   <form class="form-horizontal">
     <div class="form-group">
@@ -59,21 +56,4 @@ var html = """<html>
     </div>
   </form>
 </body>
-</html>"""
-
-
-var d = q(html)
-#echo d.select("head *")
-#echo d.select("ul li a")
-#echo d.select("ul.menu > li a")
-#echo d.select("ul.menu > li > a")
-echo d.select("ul.menu.and > li > a")
-echo d.select("#link1")
-echo d.select("input[type]")
-echo d.select("input[type=password]")
-echo d.select("input[type='password']")
-echo d.select("input[type=\"password\"]")
-echo d.select("input[type^=pa]")
-echo d.select("input[type$=ord]")
-echo d.select("input[type*=ss]")
-#echo d.select("nav ul.menu ~ div + a")
+</html>
