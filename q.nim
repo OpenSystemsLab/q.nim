@@ -46,8 +46,7 @@ proc newSelector(tag, id: string = "", classes: seq[string] = @[], attributes: s
   result.id = id
   result.classes = classes
   result.attributes = attributes
-
-
+ 
 proc initContext(root: seq[XmlNode]): QueryContext =
   new(result)
   result.root = root
@@ -63,18 +62,19 @@ proc newAttribute(n, o, v: string): Attribute =
     result.operator = o[0]
     result.value = v
 
-
 proc `$`*(q: QueryContext): string =
   result = $q.root
 
 proc q*(n: XmlNode): QueryContext =
+  ## Init Q context from single parent node  
   initContext(n)
 
 proc q*(n: seq[XmlNode]): QueryContext =
+  ## Init Q context from parent nodes  
   initContext(n)
 
 proc q*(html, path: string = ""): QueryContext =
-
+  ## Init Q context from HTML string for from file
   if html == "" and path == "":
     return nil
 
@@ -87,18 +87,18 @@ proc q*(html, path: string = ""): QueryContext =
   result = initContext(@[node])
 
 
-proc match(n: XmlNode, s: Selector): bool =
+proc match(n: XmlNode, s: Selector): bool =    
   # match tag if tag specified
   result = s.tag == "" or s.tag == "*" or n.tag == s.tag
 
   if result and s.id != "":
     result = n.attr("id") == s.id
 
-  if result and s.classes.len != 0:
+  if result and s.classes.len > 0:
     for class in s.classes:
       result = n.attr("class") != "" and class in n.attr("class").split()
 
-  if result and not s.attributes.len != 0:
+  if result and s.attributes.len > 0:
     for attr in s.attributes:
       let value = n.attr(attr.name)
 
@@ -197,6 +197,7 @@ proc parseSelector(token: string): Selector =
     discard
 
 proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
+  ## Return list of nodes matched by CSS selector
   result = q.root
 
   if s.isNil or s == "":
