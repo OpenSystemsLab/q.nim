@@ -16,46 +16,44 @@ import xmltree
 from streams import newStringStream
 from strtabs import hasKey
 
+
 let
-  attribute = "[a-zA-Z][a-zA-Z0-9_\\-]*"
-  classes = "{\\.[a-zA-Z0-9_][a-zA-Z0-9_\\-]*}"
-  attributes = "{\\[" & attribute & "\\s*([\\*\\^\\$\\~]?\\=\\s*[\\'\\\"]?(\\s*\\ident\\s*)+[\\'\\\"]?)?\\]}"
-  pselectors = peg("\\s*{\\ident}?({'#'\\ident})? (" & classes & ")* "& attributes & "*")
-  pattributes = peg("{\\[{" & attribute & "}\\s*({[\\*\\^\\$\\~]?}\\=\\s*[\\'\\\"]?{(\\s*\\ident\\s*)+}[\\'\\\"]?)?\\]}")
+  attribute = r"[a-zA-Z][a-zA-Z0-9_\-]*"
+  classes = r"{\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*}"
+  attributes = r"{\[" & attribute & r"\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}"
+  pselectors = peg(r"\s*{\ident}?({'#'\ident})? (" & classes & ")* "& attributes & "*")
+  pattributes = peg(r"{\[{" & attribute & r"}\s*({[\*\^\$\~]?}\=\s*[\'""]?{(\s*\ident\s*)+}[\'""]?)?\]}")
 
 type
-  Attribute = ref object of RootObj
+  Attribute = object
     name: string
     operator: char
     value: string
 
-  Selector = ref object of RootObj
+  Selector = object
     combinator: char
     tag: string
     id: string
     classes: seq[string]
     attributes: seq[Attribute]
 
-  QueryContext = ref object of RootObj
+  QueryContext = object
     root: seq[XmlNode]
 
-proc newSelector(tag, id: string = "", classes: seq[string] = @[], attributes: seq[Attribute] = @[]): Selector =
-  new(result)
+proc newSelector(tag, id = "", classes: seq[string] = @[], attributes: seq[Attribute] = @[]): Selector =
   result.combinator = ' '
   result.tag = tag
   result.id = id
   result.classes = classes
   result.attributes = attributes
- 
+
 proc initContext(root: seq[XmlNode]): QueryContext =
-  new(result)
   result.root = root
 
 proc initContext(root: XmlNode): QueryContext =
   initContext(@[root])
 
 proc newAttribute(n, o, v: string): Attribute =
-  new(result)
   result.name = n
 
   if not o.isNil:
@@ -66,17 +64,17 @@ proc `$`*(q: QueryContext): string =
   result = $q.root
 
 proc q*(n: XmlNode): QueryContext =
-  ## Init Q context from single parent node  
+  ## Init Q context from single parent node
   initContext(n)
 
 proc q*(n: seq[XmlNode]): QueryContext =
-  ## Init Q context from parent nodes  
+  ## Init Q context from parent nodes
   initContext(n)
 
-proc q*(html, path: string = ""): QueryContext =
+proc q*(html, path = ""): QueryContext =
   ## Init Q context from HTML string for from file
   if html == "" and path == "":
-    return nil
+    return
 
   var node: XmlNode
   if html == "" and path != "":
@@ -87,7 +85,7 @@ proc q*(html, path: string = ""): QueryContext =
   result = initContext(@[node])
 
 
-proc match(n: XmlNode, s: Selector): bool =    
+proc match(n: XmlNode, s: Selector): bool =
   # match tag if tag specified
   result = s.tag == "" or s.tag == "*" or n.tag == s.tag
 
