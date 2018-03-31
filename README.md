@@ -18,12 +18,12 @@ This project is in alpha stage, some features are not supported yet.
 ##Installation
     $ nimble install q
 
-##Changes
+## Changes
     0.0.2 - supports sibling combinators and multiple class, attributes selectors
     0.0.1 - initial release
 
 
-##Usage
+## Usage
 
 ```nim
 import q
