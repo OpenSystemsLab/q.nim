@@ -15,7 +15,7 @@ This project is in alpha stage, some features are not supported yet.
 - [x] [General sibling combinator](http://www.w3.org/TR/css3-selectors/#general-sibling-combinators)
 - [ ] [Structural pseudo-classes](http://www.w3.org/TR/css3-selectors/#structural-pseudos)
 
-##Installation
+## Installation
     $ nimble install q
 
 ## Changes
