@@ -244,3 +244,6 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
       result.searchSimple(selectors[0])
     else:
       result.searchCombined(selectors)
+
+proc select*(n: XmlNode, s: string = ""): seq[XmlNode] {.inline.} =
+  q(n).select(s)
