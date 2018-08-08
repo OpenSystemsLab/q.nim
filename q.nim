@@ -99,11 +99,10 @@ proc match(n: XmlNode, s: Selector): bool =
   if result and s.attributes.len > 0:
     for attr in s.attributes:
       let value = n.attr(attr.name)
-
       case attr.operator
       of '\0':
         if attr.value.len == 0: # [attr] match all node has specified attribute, dont care about the value
-          result = n.attrs.hasKey(attr.name)
+          result = n.attr(attr.name).len > 0
         else: # [attr=value] value must match
           result = attr.value == value
       of '^':
