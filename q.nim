@@ -54,8 +54,6 @@ proc initContext(root: XmlNode): QueryContext =
   initContext(@[root])
 
 proc newAttribute(n, o, v: string): Attribute =
-  echo n, " ", o, " ", v
-
   result.name = n
 
   if o.len != 0:
