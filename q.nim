@@ -54,9 +54,11 @@ proc initContext(root: XmlNode): QueryContext =
   initContext(@[root])
 
 proc newAttribute(n, o, v: string): Attribute =
+  echo n, " ", o, " ", v
+
   result.name = n
 
-  if not o.isNil:
+  if o.len != 0:
     result.operator = o[0]
     result.value = v
 
@@ -102,7 +104,7 @@ proc match(n: XmlNode, s: Selector): bool =
 
       case attr.operator
       of '\0':
-        if attr.value.isNil: # [attr] match all node has specified attribute, dont care about the value
+        if attr.value.len == 0: # [attr] match all node has specified attribute, dont care about the value
           result = n.attrs.hasKey(attr.name)
         else: # [attr=value] value must match
           result = attr.value == value
@@ -198,7 +200,7 @@ proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
   ## Return list of nodes matched by CSS selector
   result = q.root
 
-  if s.isNil or s == "":
+  if s.len == 0:
     return result
 
   var nextCombinator, nextToken: string
