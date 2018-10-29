@@ -21,7 +21,7 @@ let
   attribute = r"[a-zA-Z][a-zA-Z0-9_\-]*"
   classes = r"{\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*}"
   attributes = r"{\[" & attribute & r"\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}"
-  pselectors = peg(r"\s*{\ident}?({'#'\ident})? (" & classes & ")* "& attributes & "*")
+  pselectors = peg(r"\s*{\ident}?({'#'\ident})? (" & classes & ")* " & attributes & "*")
   pattributes = peg(r"{\[{" & attribute & r"}\s*({[\*\^\$\~]?}\=\s*[\'""]?{(\s*\ident\s*)+}[\'""]?)?\]}")
 
 type
@@ -174,7 +174,7 @@ proc parseSelector(token: string): Selector =
   # Type selector
   elif token =~ pselectors:
     for i in 0..matches.len-1:
-      if matches[i].isNil:
+      if matches[i].len == 0:
         continue
 
       let ch = matches[i][0]
