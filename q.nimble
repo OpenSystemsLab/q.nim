@@ -8,4 +8,4 @@ license       = "MIT"
 skipDirs = "tests"
 
 [Deps]
-Requires: "nim >= 0.10.0"
+Requires: "nim >= 0.19.0"
