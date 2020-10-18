@@ -16,14 +16,6 @@ import xmltree
 from streams import newStringStream
 from strtabs import hasKey
 
-
-let
-  attribute = r"[a-zA-Z][a-zA-Z0-9_\-]*"
-  classes = r"{\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*}"
-  attributes = r"{\[" & attribute & r"\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}"
-  pselectors = peg(r"\s*{\ident}?({'#'\ident})? (" & classes & ")* " & attributes & "*")
-  pattributes = peg(r"{\[{" & attribute & r"}\s*({[\*\^\$\~]?}\=\s*[\'""]?{(\s*\ident\s*)+}[\'""]?)?\]}")
-
 type
   Attribute = object
     name: string
@@ -36,16 +28,26 @@ type
     id: string
     classes: seq[string]
     attributes: seq[Attribute]
+    pSelectors: Peg
+    pAttributes: Peg
 
   QueryContext = object
     root: seq[XmlNode]
 
 proc newSelector(tag, id = "", classes: seq[string] = @[], attributes: seq[Attribute] = @[]): Selector =
+  let
+    attributeSelector = r"[a-zA-Z][a-zA-Z0-9_\-]*"
+    classesSelector = r"{\.[a-zA-Z0-9_][a-zA-Z0-9_\-]*}"
+    attributesSelector = r"{\[" & attributeSelector & r"\s*([\*\^\$\~]?\=\s*[\'""]?(\s*\ident\s*)+[\'""]?)?\]}"
+
   result.combinator = ' '
   result.tag = tag
   result.id = id
   result.classes = classes
   result.attributes = attributes
+
+  result.pSelectors = peg(r"\s*{\ident}?({'#'\ident})? (" & classesSelector & ")* " & attributesSelector & "*")
+  result.pAttributes = peg(r"{\[{" & attributeSelector & r"}\s*({[\*\^\$\~]?}\=\s*[\'""]?{(\s*\ident\s*)+}[\'""]?)?\]}")
 
 proc initContext(root: seq[XmlNode]): QueryContext =
   result.root = root
@@ -166,13 +168,13 @@ proc searchCombined(parents: var seq[XmlNode], selectors: seq[Selector]) =
 
   parents = found
 
-proc parseSelector(token: string): Selector =
+proc parseSelector(token: string): Selector {.gcsafe.} =
   result = newSelector()
   # Universal selector
   if token == "*":
     result.tag = "*"
   # Type selector
-  elif token =~ pselectors:
+  elif token =~ result.pSelectors:
     for i in 0..matches.len-1:
       if matches[i].len == 0:
         continue
@@ -184,16 +186,16 @@ proc parseSelector(token: string): Selector =
         result.id = matches[i]
       of '.':
         matches[i].delete(0, 0)
-        result.classes.add(matches[i])
+        result.classes.add(move matches[i])
       of '[':
-        if matches[i] =~ pattributes:
+        if matches[i] =~ result.pAttributes:
           result.attributes.add(newAttribute(matches[1], matches[2], matches[3]))
       else:
         result.tag = matches[i]
   else:
     discard
 
-proc select*(q: QueryContext, s: string = ""): seq[XmlNode] =
+proc select*(q: QueryContext, s: string = ""): seq[XmlNode] {.gcsafe.} =
   ## Return list of nodes matched by CSS selector
   result = q.root
 
